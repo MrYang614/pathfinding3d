@@ -1,5 +1,5 @@
 [package]
-name = "three_pathfinding_3d_wasm"
+name = "pathfinding3d"
 version = "0.1.0"
 authors = ["yangjun <526838933@qq.com>"]
 edition = "2021"

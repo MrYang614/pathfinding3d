@@ -40,7 +40,7 @@ The generated package will be written to `pkg/` and can be imported directly fro
 ## Quick Start
 
 ```js
-import init, { PathfindingWasm } from "./pkg/three_pathfinding_3d_wasm.js";
+import init, { PathfindingWasm } from "./pkg/pathfinding3d.js";
 
 await init();
 

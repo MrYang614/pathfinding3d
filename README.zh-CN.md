@@ -40,7 +40,7 @@ wasm-pack build --release
 ## 快速开始
 
 ```js
-import init, { PathfindingWasm } from "./pkg/three_pathfinding_3d_wasm.js";
+import init, { PathfindingWasm } from "./pkg/pathfinding3d.js";
 
 await init();
 
