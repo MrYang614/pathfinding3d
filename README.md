@@ -1,5 +1,7 @@
 # pathfinding3d
 
+[简体中文](README.zh-CN.md)
+
 One of the fastest JavaScript 3D pathfinding libraries. `pathfinding3d` implements its core algorithms in Rust and compiles them to WebAssembly, bringing near-native 3D NavMesh pathfinding performance to browsers and Node.js.
 
 It is not a Three.js-only plugin. It is a general-purpose WASM 3D pathfinding engine. As long as your JavaScript 3D engine can provide mesh vertex and index data, it can use this library to build navigation zones, query groups, and search paths.
