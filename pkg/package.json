@@ -1,0 +1,20 @@
+{
+  "name": "three_pathfinding_3d_wasm",
+  "type": "module",
+  "collaborators": [
+    "yangjun <526838933@qq.com>"
+  ],
+  "version": "0.1.0",
+  "files": [
+    "three_pathfinding_3d_wasm_bg.wasm",
+    "three_pathfinding_3d_wasm.js",
+    "three_pathfinding_3d_wasm_bg.js",
+    "three_pathfinding_3d_wasm.d.ts"
+  ],
+  "main": "three_pathfinding_3d_wasm.js",
+  "types": "three_pathfinding_3d_wasm.d.ts",
+  "sideEffects": [
+    "./three_pathfinding_3d_wasm.js",
+    "./snippets/*"
+  ]
+}
