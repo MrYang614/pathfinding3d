@@ -233,7 +233,6 @@ impl PathfindingWasm {
     pub fn get_closest_node_id(
         &self,
         zone_id: String,
-        group_id: usize,
         x: f64,
         y: f64,
         z: f64,
@@ -241,6 +240,7 @@ impl PathfindingWasm {
     ) -> Option<u32> {
         let pos = Vec3::new(x, y, z);
         let zone_data = self.zone_from_name(&zone_id)?;
+        let group_id = compute_group(zone_data, &pos, check_polygon)?;
         let Some(group) = zone_data.zone.groups.get(group_id) else {
             return None;
         };

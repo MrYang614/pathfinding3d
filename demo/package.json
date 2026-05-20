@@ -1,0 +1,23 @@
+{
+    "name": "pathfinding3d-demo",
+    "private": true,
+    "version": "0.0.0",
+    "type": "module",
+    "scripts": {
+        "dev": "vite",
+        "build": "tsc && vite build",
+        "preview": "vite preview"
+    },
+    "devDependencies": {
+        "@types/three": "^0.179.0",
+        "typescript": "~5.8.3",
+        "vite": "^6.3.5",
+        "vite-plugin-top-level-await": "^1.6.0",
+        "vite-plugin-wasm": "^3.6.0"
+    },
+    "dependencies": {
+        "pathfinding3d": "file:../pkg",
+        "three": "^0.179.1",
+        "three-pathfinding-3d": "^1.0.9"
+    }
+}
