@@ -64,17 +64,16 @@ export class PathfindingWasm {
     }
     /**
      * @param {string} zone_id
-     * @param {number} group_id
      * @param {number} x
      * @param {number} y
      * @param {number} z
      * @param {boolean} check_polygon
      * @returns {number | undefined}
      */
-    get_closest_node_id(zone_id, group_id, x, y, z, check_polygon) {
+    get_closest_node_id(zone_id, x, y, z, check_polygon) {
         const ptr0 = passStringToWasm0(zone_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
-        const ret = wasm.pathfindingwasm_get_closest_node_id(this.__wbg_ptr, ptr0, len0, group_id, x, y, z, check_polygon);
+        const ret = wasm.pathfindingwasm_get_closest_node_id(this.__wbg_ptr, ptr0, len0, x, y, z, check_polygon);
         return ret === Number.MAX_SAFE_INTEGER ? undefined : ret;
     }
     /**

@@ -148,7 +148,7 @@ function closestNodeCenter(
 	y: number,
 	z: number,
 ): THREE.Vector3 | null {
-	const nodeId = pathfinder.get_closest_node_id(zoneId, groupId, x, y, z, true);
+	const nodeId = pathfinder.get_closest_node_id(zoneId, x, y, z, true);
 	if (nodeId === undefined) return null;
 	return nodeCenter(zoneId, groupId, nodeId);
 }

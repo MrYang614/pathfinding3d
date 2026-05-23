@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       pathfinding3d:
-        specifier: file:../pkg
-        version: file:../pkg
+        specifier: ^1.0.0
+        version: 1.0.0
       three:
         specifier: ^0.179.1
         version: 0.179.1
@@ -486,8 +486,8 @@ packages:
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
 
-  pathfinding3d@file:../pkg:
-    resolution: {directory: ../pkg, type: directory}
+  pathfinding3d@1.0.0:
+    resolution: {integrity: sha512-QIQgJhXpCLuSULnWBzrEzRUW3kNnpA6MEvPqrmX/hKfbJHsafmxmD2T2du/QzgG58rGtLmJVfkmMH19YNg0DsA==}
 
   picocolors@1.1.1:
     resolution: {integrity: sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==}
@@ -866,7 +866,7 @@ snapshots:
 
   nanoid@3.3.11: {}
 
-  pathfinding3d@file:../pkg: {}
+  pathfinding3d@1.0.0: {}
 
   picocolors@1.1.1: {}
 
