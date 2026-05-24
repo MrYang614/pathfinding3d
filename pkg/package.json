@@ -4,7 +4,7 @@
   "collaborators": [
     "yangjun <526838933@qq.com>"
   ],
-  "version": "1.0.0",
+  "version": "1.0.1",
   "files": [
     "pathfinding3d_bg.wasm",
     "pathfinding3d.js",
