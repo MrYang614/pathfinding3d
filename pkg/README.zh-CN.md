@@ -27,9 +27,15 @@
 
 ## 安装
 
+从 npm 安装（推荐）：
+
 ```bash
 npm install pathfinding3d
+# yarn add pathfinding3d
+# pnpm add pathfinding3d
 ```
+
+本包为 **纯 ESM** 模块（`"type": "module"`），自带 TypeScript 类型定义，无需额外安装 `@types` 包。
 
 或从源码构建（需安装 [Rust](https://rustup.rs/) 与 [wasm-pack](https://rustwasm.github.io/wasm-pack/)）：
 
@@ -39,6 +45,82 @@ wasm-pack build --release
 ```
 
 生成的 npm 包会输出到 `pkg/` 目录。
+
+## npm 用法
+
+### 在项目中引入
+
+安装完成后，直接在代码中 import 即可使用：
+
+```js
+import { PathfindingWasm } from "pathfinding3d";
+
+const pathfinding = new PathfindingWasm();
+```
+
+首次 import 时 WASM 会自动初始化，**无需** 单独调用 `init()`。
+
+TypeScript 项目同样直接 import，类型由包内 `pathfinding3d.d.ts` 提供：
+
+```ts
+import { PathfindingWasm } from "pathfinding3d";
+```
+
+### Vite 项目配置
+
+本库依赖 WebAssembly，Vite 项目需安装并启用 WASM 插件：
+
+```bash
+npm install -D vite-plugin-wasm vite-plugin-top-level-await
+```
+
+```ts
+// vite.config.ts
+import { defineConfig } from "vite";
+import wasm from "vite-plugin-wasm";
+import topLevelAwait from "vite-plugin-top-level-await";
+
+export default defineConfig({
+  build: { target: "esnext" },
+  plugins: [wasm(), topLevelAwait()],
+});
+```
+
+仓库中的 [demo](../demo) 即采用此配置，可作为完整参考。
+
+### Webpack 5+
+
+在 webpack 配置中开启 `asyncWebAssembly` 实验选项，以支持 `.wasm` 模块加载。
+
+### 本地开发 / 未发布版本
+
+若在本仓库中自行构建，可将 `pkg/` 作为本地依赖安装到项目中：
+
+```bash
+# 在仓库根目录构建
+wasm-pack build --release
+
+# 在你的项目中安装本地 pkg
+npm install /path/to/pathfinding3d/pkg
+# 或相对路径：npm install ../pathfinding3d/pkg
+```
+
+也可使用 `npm link` 进行联调：
+
+```bash
+cd pkg && npm link
+cd ../your-app && npm link pathfinding3d
+```
+
+### package.json 依赖示例
+
+```json
+{
+  "dependencies": {
+    "pathfinding3d": "^1.0.1"
+  }
+}
+```
 
 ## 快速开始
 

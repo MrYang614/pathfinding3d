@@ -21,59 +21,89 @@ It is not a Three.js-only plugin. It is a general-purpose WASM 3D pathfinding en
 - Multi-engine projects that need reusable pathfinding without being tied to Three.js
 - Projects that need faster path queries than `three-pathfinding-3d`
 
-## Build
+## Install
 
-Install Rust and `wasm-pack` first:
+Install from npm (recommended):
+
+```bash
+npm install pathfinding3d
+# yarn add pathfinding3d
+# pnpm add pathfinding3d
+```
+
+The package is **ESM-only** (`"type": "module"`). TypeScript definitions are included — no `@types` package needed.
+
+### Using with npm
+
+Import and use directly in your app:
+
+```js
+import { PathfindingWasm } from "pathfinding3d";
+
+const pathfinding = new PathfindingWasm();
+```
+
+WASM initializes automatically on first import — no separate `init()` call is required.
+
+**Vite** — install WASM plugins and add them to your config:
+
+```bash
+npm install -D vite-plugin-wasm vite-plugin-top-level-await
+```
+
+```ts
+// vite.config.ts
+import { defineConfig } from "vite";
+import wasm from "vite-plugin-wasm";
+import topLevelAwait from "vite-plugin-top-level-await";
+
+export default defineConfig({
+  build: { target: "esnext" },
+  plugins: [wasm(), topLevelAwait()],
+});
+```
+
+**Webpack 5+** — enable the `asyncWebAssembly` experiment in your config.
+
+**Local development** — after building with `wasm-pack build --release`, link the generated package:
+
+```bash
+npm install ./pkg
+# or: cd pkg && npm link && cd ../your-app && npm link pathfinding3d
+```
+
+### Build from source
+
+Install [Rust](https://rustup.rs/) and [wasm-pack](https://rustwasm.github.io/wasm-pack/), then:
 
 ```bash
 cargo install wasm-pack
-```
-
-Build the WebAssembly npm package:
-
-```bash
 wasm-pack build --release
 ```
 
-The generated package will be written to `pkg/` and can be imported directly from JavaScript or TypeScript projects.
+The generated npm package is written to `pkg/`. See [pkg/README.md](pkg/README.md) for the full API and integration guide.
 
 ## Quick Start
 
 ```js
-import init, { PathfindingWasm } from "./pkg/pathfinding3d.js";
-
-await init();
+import { PathfindingWasm } from "pathfinding3d";
 
 const pathfinding = new PathfindingWasm();
 
-// positions: [x, y, z, x, y, z, ...]
-// indices: [a, b, c, a, b, c, ...]
-pathfinding.create_zone(
-  "level-1",
-  positions,
-  indices,
-  0.0001
-);
+// positions: Float32Array [x, y, z, x, y, z, ...]
+// indices:   Uint32Array  [a, b, c, a, b, c, ...]
+pathfinding.create_zone("level-1", positions, indices, 0.001);
 
-const groupId = pathfinding.get_group(
-  "level-1",
-  start.x,
-  start.y,
-  start.z,
-  true
-);
+const groupId = pathfinding.get_group("level-1", start.x, start.y, start.z, true);
+if (groupId === undefined) return;
 
 const output = new Float32Array(1024 * 3);
 const pointCount = pathfinding.find_path(
   "level-1",
   groupId,
-  start.x,
-  start.y,
-  start.z,
-  target.x,
-  target.y,
-  target.z,
-  output
+  start.x, start.y, start.z,
+  target.x, target.y, target.z,
+  output,
 );
 
 const path = [];
