@@ -1,5 +1,7 @@
 # pathfinding3d
 
+[![npm version](https://img.shields.io/npm/v/pathfinding3d)](https://www.npmjs.com/package/pathfinding3d)
+
 [简体中文](README.zh-CN.md)
 
 The fastest JavaScript 3D pathfinding library. `pathfinding3d` implements its core algorithms in Rust and compiles them to WebAssembly, bringing near-native 3D NavMesh pathfinding performance to browsers and Node.js.
@@ -23,7 +25,7 @@ It is not a Three.js-only plugin. It is a general-purpose WASM 3D pathfinding en
 
 ## Install
 
-Install from npm (recommended):
+Install from [npm](https://www.npmjs.com/package/pathfinding3d) (recommended):
 
 ```bash
 npm install pathfinding3d
