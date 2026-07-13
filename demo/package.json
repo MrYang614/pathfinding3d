@@ -16,7 +16,7 @@
         "vite-plugin-wasm": "^3.6.0"
     },
     "dependencies": {
-        "pathfinding3d": "^1.0.0",
+        "pathfinding3d": "file:../pkg",
         "three": "^0.179.1",
         "three-pathfinding-3d": "^1.0.9"
     }

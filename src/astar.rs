@@ -138,7 +138,7 @@ pub(crate) fn astar_search<'scratch>(
             let tentative_g = current_g
                 + current_node
                     .center
-                    .distance_squared(group_nodes[neighbour_idx].center);
+                    .distance(group_nodes[neighbour_idx].center);
             let known_g = scratch.g_score[neighbour_idx];
             let been_visited = scratch.visited[neighbour_idx];
             if !been_visited || tentative_g < known_g {

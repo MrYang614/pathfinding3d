@@ -39,6 +39,11 @@ flowchart LR
 ### 2.1 执行环境与语言层
 
 - **Rust + WASM**：热点路径（网格构建、空间查询、A\*、漏斗）在原生机器码或 WASM 中执行，避免纯 JavaScript 解释执行与频繁装箱的开销。项目 README 中与 `three-pathfinding-3d` 的对比属于**同量级场景下的经验性描述**；具体倍数随网格规模、图密度与硬件变化，应以实际基准测试为准。
+
+![基准测试：pathfinding3d vs three-pathfinding-3d](../benchmark.png)
+
+*Demo navmesh（`level.nav.glb`）：`findPath` **10.4x**，三项合计 **7.3x** vs `three-pathfinding-3d`。可于 [`demo/benchmark.html`](../demo/benchmark.html) 复现。*
+
 - **数值类型**：内部大量使用 `f64`（`glam::DVec3`）做几何与搜索，与 JS 侧 `number` 精度衔接自然；输出写入 `Float32Array` 时再做 `f32` 截断，减小返回路径的内存与带宽。
 
 ### 2.2 内存与垃圾回收
@@ -68,10 +73,11 @@ flowchart LR
 3. **三角形对象**：每个三角形记录 `vertex_indices`、**质心** `center`、`neighbours`、`portals`（共享边上的两个顶点索引）。
 4. **邻接与 Portal**：遍历每条无向边 `HashMap<(min,max), tri_idx>`，若同一条边被两个三角形使用则 `bind_neighbour`，双向记录邻接三角形 id 与共享边的顶点对。
 5. **分组（Group）**：对 `group_id == -1` 的三角形做 BFS（`VecDeque`）扩散，将连通分量标为 `0..G-1`，再按 `group_id` 聚合成 `ZoneInput.groups`。
+6. **组内 ID 重映射**：将三角形 `id` 与 `neighbours` 从构建阶段的全局序号改为各分组内的局部下标 `0..n-1`。
 
 ### 3.2 `impls.rs`：分组内图结构 `GroupData`
 
-- 将 `PolygonInput.id`（构建时的三角形序号）映射到分组内的紧凑下标 `id_to_index`。
+- `PolygonInput.id` 与邻接表中的邻居下标均为 **分组内局部索引**（`0..nodes.len()-1`）。
 - `neighbours_by_index` 存储 `NeighborLink { index, portal }`，供 A\* 枚举邻居与后续取 **相邻三角形之间的 Portal 边**。
 
 ### 3.3 `pathfinding.rs`：运行时索引与查询编排
@@ -93,8 +99,8 @@ flowchart LR
 ### 3.4 `astar.rs`：分组内 A\*
 
 - **状态**：`BinaryHeap` 按 `f = g + h` 最大堆反转实现最小 `f`；`HeapNode` 在 `f` 相等时用 `idx` 打破平局，保证次序稳定。
-- **代价**：`g` 的增量为当前与邻居三角形 **质心间距离平方**之和。
-- **启发式**：`h` 为邻居三角形质心到 **终点三角形质心** 的 **欧氏距离**（非平方），并对每个节点缓存。
+- **代价**：`g` 的增量为当前与邻居三角形 **质心间欧氏距离**之和。
+- **启发式**：`h` 为邻居三角形质心到 **终点三角形质心** 的 **欧氏距离**，并对每个节点缓存。
 - **路径回溯**：`parent` 链从终点回到起点，再 `reverse` 得到从起点侧到终点侧的三角形序列（注意与 `path` 向量填充顺序一致）。
 
 ### 3.5 `channel.rs`：三维漏斗与辅助插点
@@ -135,6 +141,7 @@ flowchart LR
 1. **可走网格质量**：非流形、重复面、过大容差会影响焊接与邻接；Disconnected 区域会落入不同 `group_id`，跨组需业务层处理（如传送或桥接网格）。
 2. **“地面”假设**：`judge_dir` 与部分点在三角形内判定依赖 **y 轴** 与水平投影习惯；若可走面为任意朝向的陡坡，需在业务上评估是否适用或是否应预处理网格。
 3. **输出约定**：`find_path` 返回的点数对应 `output` 中写入的三元组个数；若缓冲区不足，返回值表示所需长度（见 README API 说明），需调用方扩容后重试。
+4. **节点 ID**：对外 API（`get_closest_node_id`、`group_node_ids`、`node_center`）中的三角形 ID 为 **分组内局部下标**，须与 `groupId` 配合使用；详见 [CHANGELOG.zh-CN.md](../CHANGELOG.zh-CN.md)。
 
 ---
 

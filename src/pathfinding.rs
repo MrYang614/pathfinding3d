@@ -96,6 +96,13 @@ struct PathScratch {
     flat_points: Vec<f32>,
 }
 
+struct PathContext<'a> {
+    group_nodes: &'a [PolygonInput],
+    group_data: &'a GroupData,
+    vertices: &'a [Vec3],
+    group_spatial: &'a GroupSpatialData,
+}
+
 impl PathScratch {
     fn with_capacity(len: usize) -> Self {
         Self {
@@ -111,6 +118,12 @@ pub struct PathfindingWasm {
     zones: HashMap<u32, ZoneData>,
     zone_names: HashMap<String, u32>,
     next_zone_handle: u32,
+}
+
+impl Default for PathfindingWasm {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[wasm_bindgen]
@@ -241,9 +254,8 @@ impl PathfindingWasm {
         let pos = Vec3::new(x, y, z);
         let zone_data = self.zone_from_name(&zone_id)?;
         let group_id = compute_group(zone_data, &pos, check_polygon)?;
-        let Some(group) = zone_data.zone.groups.get(group_id) else {
-            return None;
-        };
+
+        let group = zone_data.zone.groups.get(group_id)?;
         let spatial = zone_data.group_spatial.get(group_id)?;
         get_closest_node_index(
             group,
@@ -256,6 +268,7 @@ impl PathfindingWasm {
         .map(|node| node.id as u32)
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn find_path(
         &self,
         zone_id: String,
@@ -293,10 +306,12 @@ impl PathfindingWasm {
         };
 
         if compute_path_points(
-            group_nodes,
-            group_data,
-            &zone_data.zone.vertices,
-            group_spatial,
+            PathContext {
+                group_nodes,
+                group_data,
+                vertices: &zone_data.zone.vertices,
+                group_spatial,
+            },
             &start_pos,
             &target_pos,
             scratch,
@@ -413,15 +428,18 @@ fn write_path_to_output(path: &[Vec3], output: &Float32Array, flat_points: &mut 
 }
 
 fn compute_path_points(
-    group_nodes: &[PolygonInput],
-    group_data: &GroupData,
-    vertices: &[Vec3],
-    group_spatial: &GroupSpatialData,
+    context: PathContext<'_>,
     start: &Vec3,
     target: &Vec3,
     scratch: &mut AstarScratch,
     path_scratch: &mut PathScratch,
 ) -> Option<()> {
+    let PathContext {
+        group_nodes,
+        group_data,
+        vertices,
+        group_spatial,
+    } = context;
     let closest_idx = get_closest_node_index(group_nodes, vertices, group_spatial, start, true)?;
     let farthest_idx = get_closest_node_index(group_nodes, vertices, group_spatial, target, true)?;
     let path_indices = astar_search(group_nodes, group_data, closest_idx, farthest_idx, scratch);
@@ -575,10 +593,12 @@ mod tests {
         let mut scratch = AstarScratch::with_len(zone_data.group_data[0].len());
         let mut path_scratch = PathScratch::with_capacity(zone_data.group_data[0].len());
         compute_path_points(
-            &zone_data.zone.groups[0],
-            &zone_data.group_data[0],
-            &zone_data.zone.vertices,
-            &zone_data.group_spatial[0],
+            PathContext {
+                group_nodes: &zone_data.zone.groups[0],
+                group_data: &zone_data.group_data[0],
+                vertices: &zone_data.zone.vertices,
+                group_spatial: &zone_data.group_spatial[0],
+            },
             &start,
             &target,
             &mut scratch,

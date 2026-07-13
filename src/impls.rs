@@ -24,7 +24,6 @@ pub struct Portal3 {
 
 #[derive(Debug, Clone)]
 pub struct GroupData {
-    id_to_index: Vec<Option<usize>>,
     neighbours_by_index: Vec<Vec<NeighborLink>>,
     len: usize,
 }
@@ -37,36 +36,29 @@ pub(crate) struct NeighborLink {
 
 impl GroupData {
     pub fn from_nodes(nodes: &[PolygonInput]) -> Self {
-        let max_id = nodes.iter().map(|node| node.id).max().unwrap_or(0);
-        let mut id_to_index = vec![None; max_id + 1];
-        for (idx, node) in nodes.iter().enumerate() {
-            id_to_index[node.id] = Some(idx);
-        }
-
         let mut neighbours_by_index = Vec::with_capacity(nodes.len());
         for node in nodes {
             let mut neighbour_links = Vec::with_capacity(node.neighbours.len());
             for (portal_idx, neighbour_id) in node.neighbours.iter().enumerate() {
-                if let (Some(index), Some(portal)) = (
-                    id_to_index.get(*neighbour_id).and_then(|idx| *idx),
-                    node.portals.get(portal_idx).copied(),
-                ) {
-                    neighbour_links.push(NeighborLink { index, portal });
+                if let Some(portal) = node.portals.get(portal_idx).copied() {
+                    if *neighbour_id < nodes.len() {
+                        neighbour_links.push(NeighborLink {
+                            index: *neighbour_id,
+                            portal,
+                        });
+                    }
                 }
             }
             neighbours_by_index.push(neighbour_links);
         }
         Self {
-            id_to_index,
             neighbours_by_index,
             len: nodes.len(),
         }
     }
 
     pub fn node_by_id<'a>(&self, nodes: &'a [PolygonInput], id: usize) -> Option<&'a PolygonInput> {
-        self.id_to_index
-            .get(id)
-            .and_then(|idx| idx.map(|idx| &nodes[idx]))
+        nodes.get(id)
     }
 
     pub(crate) fn portal_between_indices(

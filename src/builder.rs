@@ -6,10 +6,10 @@ pub(crate) fn create_zone(
     indices: &[u32],
     tolerance: f64,
 ) -> Result<ZoneInput, String> {
-    if positions.len() % 3 != 0 {
+    if !positions.len().is_multiple_of(3) {
         return Err("positions length must be multiple of 3".to_string());
     }
-    if indices.len() % 3 != 0 {
+    if !indices.len().is_multiple_of(3) {
         return Err("indices length must be multiple of 3".to_string());
     }
     let vertex_count = positions.len() / 3;
@@ -99,8 +99,23 @@ fn build_zone_impl(positions: &[f32], indices: &[u32], tolerance: f64) -> ZoneIn
     }
 
     let mut groups: Vec<Vec<PolygonInput>> = vec![Vec::new(); current_group as usize];
-    for triangle in triangles {
-        groups[triangle.group_id as usize].push(triangle);
+    let mut global_to_local = vec![usize::MAX; triangle_count];
+    for mut triangle in triangles {
+        let group_idx = triangle.group_id as usize;
+        let global_id = triangle.id;
+        let local_id = groups[group_idx].len();
+        global_to_local[global_id] = local_id;
+        triangle.id = local_id;
+        groups[group_idx].push(triangle);
+    }
+    for group in &mut groups {
+        for node in group {
+            for neighbour_id in &mut node.neighbours {
+                let local_id = global_to_local[*neighbour_id];
+                debug_assert_ne!(local_id, usize::MAX);
+                *neighbour_id = local_id;
+            }
+        }
     }
 
     ZoneInput {

@@ -4,28 +4,23 @@
 
 [简体中文](README.zh-CN.md)
 
-The fastest JavaScript 3D pathfinding library. `pathfinding3d` implements its core algorithms in Rust and compiles them to WebAssembly, bringing near-native 3D NavMesh pathfinding performance to browsers and Node.js.
+The fastest JavaScript 3D pathfinding library. Core algorithms are implemented in Rust and compiled to WebAssembly, delivering near-native 3D NavMesh performance in browsers and Node.js.
 
-It is not a Three.js-only plugin. It is a general-purpose WASM 3D pathfinding engine. As long as your JavaScript 3D engine can provide mesh vertex and index data, it can use this library to build navigation zones, query groups, and search paths.
+Not a Three.js-only plugin — any JavaScript 3D engine that can supply mesh vertex and index data can build zones, query groups, and find paths.
 
 ## Highlights
 
-- Extreme performance: the core pathfinding pipeline is implemented with Rust + WebAssembly, delivering roughly 10x the performance of `three-pathfinding-3d`.
-- Engine agnostic: not limited to Three.js. It works with Babylon.js, PlayCanvas, Cesium, custom WebGL/WebGPU engines, and any JavaScript 3D scene.
-- Built for 3D NavMesh workflows: create zones from triangle mesh data, then generate smooth paths with groups, nodes, A*, and funnel channels.
-- Low JavaScript overhead: path results are written into a preallocated `Float32Array`, reducing object allocation and GC pressure.
-- Frontend and server ready: packaged with `wasm-pack` for Web, Electron, Node.js, and other JavaScript environments.
+- Extreme performance: Rust + WebAssembly pathfinding, roughly **10x** faster than `three-pathfinding-3d` on `findPath`.
+- Engine agnostic: works with Three.js, Babylon.js, PlayCanvas, Cesium, custom WebGL/WebGPU engines, and any JS 3D scene.
+- Full NavMesh workflow: triangle mesh → zones → groups / nodes → A* → funnel-smoothed paths.
+- Low JS overhead: results written into a preallocated `Float32Array`, reducing allocations and GC pressure.
+- Ready for Web, Electron, Node.js, and other ESM environments via `wasm-pack`.
 
-## Use Cases
+![Benchmark: pathfinding3d vs three-pathfinding-3d](benchmark.png)
 
-- Character navigation in large 3D scenes
-- Web games, digital twins, simulations, editors, and visualization projects
-- Multi-engine projects that need reusable pathfinding without being tied to Three.js
-- Projects that need faster path queries than `three-pathfinding-3d`
+*Demo navmesh (`level.nav.glb`): `findPath` **10.4x**, overall **7.3x** vs `three-pathfinding-3d`. Reproduce with [`demo/benchmark.html`](demo/benchmark.html).*
 
 ## Install
-
-Install from [npm](https://www.npmjs.com/package/pathfinding3d) (recommended):
 
 ```bash
 npm install pathfinding3d
@@ -33,11 +28,7 @@ npm install pathfinding3d
 # pnpm add pathfinding3d
 ```
 
-The package is **ESM-only** (`"type": "module"`). TypeScript definitions are included — no `@types` package needed.
-
-### Using with npm
-
-Import and use directly in your app:
+ESM-only (`"type": "module"`). TypeScript definitions are included.
 
 ```js
 import { PathfindingWasm } from "pathfinding3d";
@@ -45,9 +36,9 @@ import { PathfindingWasm } from "pathfinding3d";
 const pathfinding = new PathfindingWasm();
 ```
 
-WASM initializes automatically on first import — no separate `init()` call is required.
+WASM initializes on first import — no separate `init()` call.
 
-**Vite** — install WASM plugins and add them to your config:
+**Vite** — add WASM plugins:
 
 ```bash
 npm install -D vite-plugin-wasm vite-plugin-top-level-await
@@ -65,25 +56,17 @@ export default defineConfig({
 });
 ```
 
-**Webpack 5+** — enable the `asyncWebAssembly` experiment in your config.
+**Webpack 5+** — enable the `asyncWebAssembly` experiment.
 
-**Local development** — after building with `wasm-pack build --release`, link the generated package:
-
-```bash
-npm install ./pkg
-# or: cd pkg && npm link && cd ../your-app && npm link pathfinding3d
-```
-
-### Build from source
-
-Install [Rust](https://rustup.rs/) and [wasm-pack](https://rustwasm.github.io/wasm-pack/), then:
+**Local / from source** — requires [Rust](https://rustup.rs/) and [wasm-pack](https://rustwasm.github.io/wasm-pack/):
 
 ```bash
 cargo install wasm-pack
 wasm-pack build --release
+npm install ./pkg
 ```
 
-The generated npm package is written to `pkg/`. See [pkg/README.md](pkg/README.md) for the full API and integration guide.
+Full API: [pkg/README.md](pkg/README.md).
 
 ## Quick Start
 
@@ -92,8 +75,8 @@ import { PathfindingWasm } from "pathfinding3d";
 
 const pathfinding = new PathfindingWasm();
 
-// positions: Float32Array [x, y, z, x, y, z, ...]
-// indices:   Uint32Array  [a, b, c, a, b, c, ...]
+// positions: Float32Array [x, y, z, ...]
+// indices:   Uint32Array  [a, b, c, ...]
 pathfinding.create_zone("level-1", positions, indices, 0.001);
 
 const groupId = pathfinding.get_group("level-1", start.x, start.y, start.z, true);
@@ -120,22 +103,27 @@ for (let i = 0; i < pointCount; i += 1) {
 
 ## API Overview
 
-- `create_zone(zoneId, positions, indices, tolerance)`: creates a pathfinding zone from triangle mesh data.
-- `create_zone_handle(positions, indices, tolerance)`: creates a zone and returns a numeric handle.
-- `get_group(zoneId, x, y, z, checkPolygon)`: finds the group containing or nearest to a position.
-- `get_closest_node_id(zoneId, groupId, x, y, z, checkPolygon)`: finds the closest navigation node.
-- `find_path(zoneId, groupId, startX, startY, startZ, targetX, targetY, targetZ, output)`: computes a path and writes it into a `Float32Array`.
-- `group_count(zoneId)`, `group_node_count(zoneId, groupId)`, `group_node_ids(zoneId, groupId)`, `group_node_centers(zoneId, groupId)`: reads zone and group metadata.
+- `create_zone(zoneId, positions, indices, tolerance)` — build a zone from triangle mesh data.
+- `create_zone_handle(positions, indices, tolerance)` — same, returns a numeric handle.
+- `get_group(zoneId, x, y, z, checkPolygon)` — group containing or nearest to a position.
+- `get_closest_node_id(zoneId, x, y, z, checkPolygon)` — closest node in that group.
+- `find_path(zoneId, groupId, sx, sy, sz, tx, ty, tz, output)` — write path into a `Float32Array`.
+- `group_count` / `group_node_count` / `group_node_ids` / `group_node_centers` — zone metadata.
 
-## Why It Is Not Tied to Three.js
+See [CHANGELOG.md](CHANGELOG.md) for breaking changes.
 
-Three.js is only one rendering engine. A pathfinding algorithm needs navigation mesh data, not a specific renderer object model. `pathfinding3d` accepts generic `positions` and `indices` arrays, so any 3D engine can convert its mesh data and pass it in.
+## Node IDs
 
-This means you can use it with Three.js, Babylon.js, PlayCanvas, Cesium, or a custom engine while keeping the same high-performance pathfinding logic.
+Node IDs are **group-local** (`0` … `group_node_count(zoneId, groupId) - 1`), not global triangle indices.
+
+| API | Meaning |
+|-----|---------|
+| `get_closest_node_id(zoneId, …)` | Closest triangle index in the group at the query point |
+| `group_node_ids(zoneId, groupId)` | All triangle indices in that group |
+| `node_center(zoneId, groupId, nodeId)` | Centroid of triangle `nodeId` in `groupId` |
+
+Always pair a node ID with the `groupId` from `get_group` (or the one passed to `find_path`). Do not compare IDs across groups.
 
 ## License
 
-Licensed under either of:
-
-- Apache License, Version 2.0, see [LICENSE_APACHE](LICENSE_APACHE)
-- MIT license, see [LICENSE_MIT](LICENSE_MIT)
+[MIT](LICENSE). Release notes: [CHANGELOG.md](CHANGELOG.md).

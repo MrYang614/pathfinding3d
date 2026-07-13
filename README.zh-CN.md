@@ -1,79 +1,94 @@
 # pathfinding3d
 
+[![npm version](https://img.shields.io/npm/v/pathfinding3d)](https://www.npmjs.com/package/pathfinding3d)
+
 [English](README.md)
 
-最快的 JavaScript 三维寻路库。`pathfinding3d` 在 Rust 中实现核心算法并编译为 WebAssembly，在浏览器与 Node.js 中提供接近原生的 3D NavMesh 寻路性能。
+最快的 JavaScript 三维寻路库。核心算法用 Rust 实现并编译为 WebAssembly，在浏览器与 Node.js 中提供接近原生的 3D NavMesh 性能。
 
-它不是仅限 Three.js 的插件，而是通用的 WASM 三维寻路引擎。只要你的 JavaScript 三维引擎能提供网格顶点与索引数据，就可以用本库构建导航区域、查询分组并搜索路径。
+不是仅限 Three.js 的插件 —— 只要能提供网格顶点与索引，任意 JavaScript 三维引擎都可以构建区域、查询分组并寻路。
 
 ## 特点
 
-- **极高性能**：核心寻路管线由 Rust + WebAssembly 实现，性能约为 `three-pathfinding-3d` 的 10-20 倍量级。
-- **引擎无关**：不限于 Three.js，可与 Babylon.js、PlayCanvas、Cesium、自研 WebGL/WebGPU 引擎及任意 JavaScript 三维场景配合使用。
-- **面向 3D NavMesh 流程**：由三角网格数据创建区域，再通过分组、节点、A* 与漏斗通道生成平滑路径。
-- **JavaScript 开销低**：路径结果写入预分配的 `Float32Array`，减少对象分配与 GC 压力。
-- **前后端通用**：通过 `wasm-pack` 打包，适用于 Web、Electron、Node.js 等 JavaScript 环境。
+- 极高性能：Rust + WebAssembly 寻路，`findPath` 约为 `three-pathfinding-3d` 的 **10 倍**。
+- 引擎无关：可用于 Three.js、Babylon.js、PlayCanvas、Cesium、自研 WebGL/WebGPU 及任意 JS 三维场景。
+- 完整 NavMesh 流程：三角网格 → 区域 → 分组 / 节点 → A* → 漏斗平滑路径。
+- JavaScript 开销低：结果写入预分配的 `Float32Array`，减少分配与 GC 压力。
+- 通过 `wasm-pack` 打包，适用于 Web、Electron、Node.js 等 ESM 环境。
 
-## 适用场景
+![基准测试：pathfinding3d vs three-pathfinding-3d](benchmark.png)
 
-- 大型三维场景中的角色导航
-- Web 游戏、数字孪生、仿真、编辑器与可视化项目
-- 需要可复用寻路、又不想绑定 Three.js 的多引擎项目
-- 寻路查询需要比 `three-pathfinding-3d` 更快的项目
+*Demo 导航网格（`level.nav.glb`）：`findPath` **10.4x**，三项合计约 **7.3x**（相对 `three-pathfinding-3d`）。可复现：[`demo/benchmark.html`](demo/benchmark.html)。*
 
-## 构建
+## 安装
 
-先安装 Rust 与 `wasm-pack`：
+```bash
+npm install pathfinding3d
+# yarn add pathfinding3d
+# pnpm add pathfinding3d
+```
+
+纯 ESM（`"type": "module"`），自带 TypeScript 类型定义。
+
+```js
+import { PathfindingWasm } from "pathfinding3d";
+
+const pathfinding = new PathfindingWasm();
+```
+
+首次 import 时自动初始化 WASM，无需单独调用 `init()`。
+
+**Vite** — 安装并启用 WASM 插件：
+
+```bash
+npm install -D vite-plugin-wasm vite-plugin-top-level-await
+```
+
+```ts
+// vite.config.ts
+import { defineConfig } from "vite";
+import wasm from "vite-plugin-wasm";
+import topLevelAwait from "vite-plugin-top-level-await";
+
+export default defineConfig({
+  build: { target: "esnext" },
+  plugins: [wasm(), topLevelAwait()],
+});
+```
+
+**Webpack 5+** — 开启 `asyncWebAssembly` 实验选项。
+
+**本地 / 源码构建** — 需 [Rust](https://rustup.rs/) 与 [wasm-pack](https://rustwasm.github.io/wasm-pack/)：
 
 ```bash
 cargo install wasm-pack
-```
-
-构建 WebAssembly npm 包：
-
-```bash
 wasm-pack build --release
+npm install ./pkg
 ```
 
-生成内容会输出到 `pkg/`，可在 JavaScript 或 TypeScript 项目中直接引用。
+完整 API：[pkg/README.zh-CN.md](pkg/README.zh-CN.md)。
 
 ## 快速开始
 
 ```js
-import init, { PathfindingWasm } from "./pkg/pathfinding3d.js";
-
-await init();
+import { PathfindingWasm } from "pathfinding3d";
 
 const pathfinding = new PathfindingWasm();
 
-// positions: [x, y, z, x, y, z, ...]
-// indices: [a, b, c, a, b, c, ...]
-pathfinding.create_zone(
-  "level-1",
-  positions,
-  indices,
-  0.0001
-);
+// positions: Float32Array [x, y, z, ...]
+// indices:   Uint32Array  [a, b, c, ...]
+pathfinding.create_zone("level-1", positions, indices, 0.001);
 
-const groupId = pathfinding.get_group(
-  "level-1",
-  start.x,
-  start.y,
-  start.z,
-  true
-);
+const groupId = pathfinding.get_group("level-1", start.x, start.y, start.z, true);
+if (groupId === undefined) return;
 
 const output = new Float32Array(1024 * 3);
 const pointCount = pathfinding.find_path(
   "level-1",
   groupId,
-  start.x,
-  start.y,
-  start.z,
-  target.x,
-  target.y,
-  target.z,
-  output
+  start.x, start.y, start.z,
+  target.x, target.y, target.z,
+  output,
 );
 
 const path = [];
@@ -88,22 +103,27 @@ for (let i = 0; i < pointCount; i += 1) {
 
 ## API 概览
 
-- `create_zone(zoneId, positions, indices, tolerance)`：由三角网格数据创建寻路区域。
-- `create_zone_handle(positions, indices, tolerance)`：创建区域并返回数字句柄。
-- `get_group(zoneId, x, y, z, checkPolygon)`：查找包含或最接近某位置的分组。
-- `get_closest_node_id(zoneId, groupId, x, y, z, checkPolygon)`：查找最近的导航节点。
-- `find_path(zoneId, groupId, startX, startY, startZ, targetX, targetY, targetZ, output)`：计算路径并写入 `Float32Array`。
-- `group_count(zoneId)`、`group_node_count(zoneId, groupId)`、`group_node_ids(zoneId, groupId)`、`group_node_centers(zoneId, groupId)`：读取区域与分组元数据。
+- `create_zone(zoneId, positions, indices, tolerance)` — 由三角网格创建区域。
+- `create_zone_handle(positions, indices, tolerance)` — 同上，返回数字句柄。
+- `get_group(zoneId, x, y, z, checkPolygon)` — 查找包含或最接近某位置的分组。
+- `get_closest_node_id(zoneId, x, y, z, checkPolygon)` — 该分组内最近的导航节点。
+- `find_path(zoneId, groupId, sx, sy, sz, tx, ty, tz, output)` — 将路径写入 `Float32Array`。
+- `group_count` / `group_node_count` / `group_node_ids` / `group_node_centers` — 区域元数据。
 
-## 为何不绑定 Three.js
+破坏性变更见 [CHANGELOG.zh-CN.md](CHANGELOG.zh-CN.md)。
 
-Three.js 只是众多渲染引擎之一。寻路算法需要的是导航网格数据，而不是特定渲染器的对象模型。`pathfinding3d` 接受通用的 `positions` 与 `indices` 数组，任意三维引擎都可以转换自身网格数据后传入。
+## 节点 ID
 
-因此你可以在 Three.js、Babylon.js、PlayCanvas、Cesium 或自研引擎中使用同一套高性能寻路逻辑。
+节点 ID 为**组内局部索引**（`0` … `group_node_count(zoneId, groupId) - 1`），不是整个 Zone 的全局三角形序号。
+
+| API | 含义 |
+|-----|------|
+| `get_closest_node_id(zoneId, …)` | 查询点所在分组内最近三角形的下标 |
+| `group_node_ids(zoneId, groupId)` | 该分组内所有三角形下标 |
+| `node_center(zoneId, groupId, nodeId)` | 分组 `groupId` 中三角形 `nodeId` 的质心 |
+
+保存节点 ID 时请始终配合 `get_group` 的 `groupId`（或与 `find_path` 传入的一致）。不同分组的 ID 不可比较。
 
 ## 许可
 
-在以下两种许可中任选其一：
-
-- Apache License, Version 2.0，见 [LICENSE_APACHE](LICENSE_APACHE)
-- MIT license，见 [LICENSE_MIT](LICENSE_MIT)
+[MIT](LICENSE)。更新日志：[CHANGELOG.zh-CN.md](CHANGELOG.zh-CN.md)。

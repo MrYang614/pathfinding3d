@@ -1,0 +1,595 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Benchmark · pathfinding3d vs three-pathfinding-3d</title>
+  <style>
+    :root {
+      --bg: #f4f5f7;
+      --panel: #fff;
+      --text: #1a1d23;
+      --muted: #5c6570;
+      --border: #d8dde3;
+      --accent: #0b6e4f;
+      --accent-soft: #e6f4ef;
+      --wasm: #0b6e4f;
+      --js: #8a4b08;
+      --warn: #9a3412;
+      --mono: "Cascadia Code", "SFMono-Regular", Consolas, Menlo, monospace;
+      --sans: "Segoe UI", system-ui, -apple-system, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--sans);
+      color: var(--text);
+      background:
+        radial-gradient(1200px 600px at 10% -10%, #dfece6 0%, transparent 55%),
+        radial-gradient(900px 500px at 100% 0%, #e8e4d8 0%, transparent 50%),
+        var(--bg);
+    }
+
+    main {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 2rem 1.25rem 3rem;
+    }
+
+    h1 {
+      margin: 0 0 0.35rem;
+      font-size: 1.65rem;
+      letter-spacing: -0.02em;
+    }
+
+    .sub {
+      margin: 0 0 1.5rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.1rem 1.2rem;
+      margin-bottom: 1rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.85rem;
+    }
+
+    label {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    label strong {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    input[type="number"] {
+      font: inherit;
+      padding: 0.55rem 0.65rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: #fafbfc;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem;
+      align-items: center;
+      margin-top: 1rem;
+    }
+
+    button {
+      font: inherit;
+      font-weight: 600;
+      border: none;
+      border-radius: 7px;
+      padding: 0.65rem 1.1rem;
+      cursor: pointer;
+      background: var(--accent);
+      color: #fff;
+    }
+
+    button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    button.secondary {
+      background: #eef1f4;
+      color: var(--text);
+    }
+
+    .status {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .status.error { color: var(--warn); }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.92rem;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 0.55rem 0.45rem;
+      border-bottom: 1px solid var(--border);
+      font-variant-numeric: tabular-nums;
+    }
+
+    th {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    td.lib-wasm { color: var(--wasm); font-weight: 600; }
+    td.lib-js { color: var(--js); font-weight: 600; }
+    td.speedup { font-weight: 700; color: var(--accent); }
+
+    .summary {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.85rem;
+      margin-bottom: 1rem;
+    }
+
+    .stat {
+      padding: 0.9rem 1rem;
+      border-radius: 8px;
+      background: var(--accent-soft);
+      border: 1px solid #c9e4d8;
+    }
+
+    .stat .k {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 0.25rem;
+    }
+
+    .stat .v {
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    pre {
+      margin: 0;
+      max-height: 280px;
+      overflow: auto;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      line-height: 1.45;
+      white-space: pre-wrap;
+      color: #2b3340;
+    }
+
+    .hint {
+      margin-top: 0.75rem;
+      font-size: 0.82rem;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    @media (max-width: 720px) {
+      .grid, .summary { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Benchmark / 基准测试</h1>
+    <p class="sub">
+      Compare <code>pathfinding3d</code> (Rust/WASM) vs <code>three-pathfinding-3d</code> (JavaScript)
+      on the demo navmesh — zone build, getGroup, and findPath.
+      <br />
+      在同一导航网格上对比 Zone 构建、getGroup、findPath；在浏览器中打开本页点击运行即可，无需无头浏览器。
+    </p>
+
+    <section class="panel">
+      <div class="grid">
+        <label>
+          <strong>createZone iterations / Zone 迭代</strong>
+          <input id="iters-zone" type="number" min="1" max="500" value="20" />
+        </label>
+        <label>
+          <strong>getGroup iterations / 查询迭代</strong>
+          <input id="iters-group" type="number" min="1" max="50000" value="2000" />
+        </label>
+        <label>
+          <strong>findPath iterations / 寻路迭代</strong>
+          <input id="iters-path" type="number" min="1" max="20000" value="1000" />
+        </label>
+      </div>
+      <div class="actions">
+        <button id="run" type="button">Run Benchmark / 运行</button>
+        <button id="clear" class="secondary" type="button">Clear / 清空</button>
+        <span id="status" class="status">Loading navmesh… / 正在加载导航网格…</span>
+      </div>
+      <p class="hint">
+        Uses <code>/level.nav.glb</code>. Same positions for both libraries.
+        Warmup runs precede timed measurements.
+        <br />
+        使用与 demo 相同的导航网格；两边使用相同采样点；正式计时前会先 warmup。
+      </p>
+    </section>
+
+    <section class="panel" id="summary-panel" hidden>
+      <div class="summary">
+        <div class="stat">
+          <div class="k">findPath speedup / 寻路加速比</div>
+          <div class="v" id="speedup-path">—</div>
+        </div>
+        <div class="stat">
+          <div class="k">Overall (sum of ops) / 三项合计加速比</div>
+          <div class="v" id="speedup-all">—</div>
+        </div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Op / 操作</th>
+            <th>Library / 库</th>
+            <th>Total ms</th>
+            <th>Avg µs</th>
+            <th>ops/s</th>
+            <th>Speedup</th>
+          </tr>
+        </thead>
+        <tbody id="results-body"></tbody>
+      </table>
+    </section>
+
+    <section class="panel">
+      <pre id="log">Ready / 就绪</pre>
+    </section>
+  </main>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+    import { Pathfinding } from 'three-pathfinding-3d';
+    import { PathfindingWasm } from 'pathfinding3d';
+
+    const ZONE = 'benchmark';
+    const TOLERANCE = 0.001;
+    const PATH_OUTPUT = new Float32Array(1024 * 3);
+
+    const el = {
+      run: document.getElementById('run'),
+      clear: document.getElementById('clear'),
+      status: document.getElementById('status'),
+      log: document.getElementById('log'),
+      summaryPanel: document.getElementById('summary-panel'),
+      resultsBody: document.getElementById('results-body'),
+      speedupPath: document.getElementById('speedup-path'),
+      speedupAll: document.getElementById('speedup-all'),
+      itersZone: document.getElementById('iters-zone'),
+      itersGroup: document.getElementById('iters-group'),
+      itersPath: document.getElementById('iters-path'),
+    };
+
+    /** @type {{ geometry: THREE.BufferGeometry, positions: Float32Array, indices: Uint32Array, samples: THREE.Vector3[] } | null} */
+    let meshData = null;
+    let busy = false;
+
+    function log(line) {
+      el.log.textContent += `${line}\n`;
+      el.log.scrollTop = el.log.scrollHeight;
+    }
+
+    function setStatus(text, isError = false) {
+      el.status.textContent = text;
+      el.status.classList.toggle('error', isError);
+    }
+
+    function fmt(n, digits = 2) {
+      return Number.isFinite(n) ? n.toFixed(digits) : '—';
+    }
+
+    function nowMs() {
+      return performance.now();
+    }
+
+    /**
+     * @template T
+     * @param {() => T} fn
+     * @param {number} iterations
+     */
+    function measure(fn, iterations) {
+      const t0 = nowMs();
+      for (let i = 0; i < iterations; i++) fn();
+      const totalMs = nowMs() - t0;
+      return {
+        totalMs,
+        avgUs: (totalMs * 1000) / iterations,
+        opsPerSec: iterations / (totalMs / 1000),
+      };
+    }
+
+    function seedRandom(seed) {
+      let s = seed >>> 0;
+      return () => {
+        s = (s * 1664525 + 1013904223) >>> 0;
+        return s / 0x100000000;
+      };
+    }
+
+    /** Build repeatable sample points from navmesh vertices. */
+    function buildSamples(geometry, count) {
+      const pos = geometry.attributes.position;
+      const n = pos.count;
+      const rand = seedRandom(42);
+      const samples = [];
+      for (let i = 0; i < count; i++) {
+        const idx = Math.floor(rand() * n);
+        samples.push(new THREE.Vector3(pos.getX(idx), pos.getY(idx), pos.getZ(idx)));
+      }
+      return samples;
+    }
+
+    async function loadNavmesh() {
+      const loader = new GLTFLoader();
+      const gltf = await loader.loadAsync('/level.nav.glb');
+      const nav = gltf.scene.getObjectByName('Navmesh_Mesh');
+      if (!nav || !nav.isMesh) {
+        throw new Error('Navmesh_Mesh not found in level.nav.glb');
+      }
+
+      const geometry = nav.geometry;
+      const positions = geometry.attributes.position.array;
+      const indexAttr = geometry.index;
+      if (!indexAttr) {
+        throw new Error('Navmesh geometry has no index buffer');
+      }
+      const indices =
+        indexAttr.array instanceof Uint32Array
+          ? indexAttr.array
+          : new Uint32Array(indexAttr.array);
+
+      meshData = {
+        geometry,
+        positions: positions instanceof Float32Array ? positions : new Float32Array(positions),
+        indices,
+        samples: buildSamples(geometry, 4096),
+      };
+    }
+
+    function rowHtml(op, lib, kind, stats, speedup) {
+      const libClass = kind === 'wasm' ? 'lib-wasm' : 'lib-js';
+      const speedupCell =
+        speedup == null
+          ? '<td>—</td>'
+          : `<td class="speedup">${fmt(speedup, 2)}×</td>`;
+      return `<tr>
+        <td>${op}</td>
+        <td class="${libClass}">${lib}</td>
+        <td>${fmt(stats.totalMs, 2)}</td>
+        <td>${fmt(stats.avgUs, 2)}</td>
+        <td>${fmt(stats.opsPerSec, 0)}</td>
+        ${speedupCell}
+      </tr>`;
+    }
+
+    function renderResults(rows, pathSpeedup, overallSpeedup) {
+      el.summaryPanel.hidden = false;
+      el.resultsBody.innerHTML = rows.join('');
+      el.speedupPath.textContent = `${fmt(pathSpeedup, 2)}×`;
+      el.speedupAll.textContent = `${fmt(overallSpeedup, 2)}×`;
+    }
+
+    async function runBenchmark() {
+      if (!meshData || busy) return;
+      busy = true;
+      el.run.disabled = true;
+
+      const zoneIters = Math.max(1, Number(el.itersZone.value) | 0);
+      const groupIters = Math.max(1, Number(el.itersGroup.value) | 0);
+      const pathIters = Math.max(1, Number(el.itersPath.value) | 0);
+
+      setStatus('Running… / 运行中…');
+      el.log.textContent = '';
+      log(`Navmesh triangles: ${meshData.indices.length / 3}`);
+      log(`Vertices: ${meshData.positions.length / 3}`);
+      log(`Iterations — createZone: ${zoneIters}, getGroup: ${groupIters}, findPath: ${pathIters}`);
+      log('');
+
+      // Yield so the UI can update before the busy loop.
+      await new Promise((r) => requestAnimationFrame(() => r()));
+
+      const { geometry, positions, indices, samples } = meshData;
+      const wasm = new PathfindingWasm();
+      const js = new Pathfinding();
+
+      // --- Warmup ---
+      wasm.create_zone(ZONE, positions, indices, TOLERANCE);
+      const zoneJsWarm = Pathfinding.createZone(geometry, TOLERANCE);
+      js.setZoneData(ZONE, zoneJsWarm);
+
+      const p0 = samples[0];
+      const p1 = samples[1];
+      const gWarm = wasm.get_group(ZONE, p0.x, p0.y, p0.z, true);
+      js.getGroup(ZONE, p0, true);
+      if (gWarm !== undefined) {
+        wasm.find_path(ZONE, gWarm, p0.x, p0.y, p0.z, p1.x, p1.y, p1.z, PATH_OUTPUT);
+        js.findPath(p0, p1, ZONE, gWarm);
+      }
+      log('Warmup done.');
+
+      // --- createZone ---
+      const wasmZone = measure(() => {
+        wasm.create_zone(ZONE, positions, indices, TOLERANCE);
+      }, zoneIters);
+
+      // Keep the last zone for subsequent JS-side setZoneData consistency;
+      // createZone alone is the costly build step for three-pathfinding-3d.
+      let lastJsZone = zoneJsWarm;
+      const jsZone = measure(() => {
+        lastJsZone = Pathfinding.createZone(geometry, TOLERANCE);
+      }, zoneIters);
+      js.setZoneData(ZONE, lastJsZone);
+
+      // Rebuild WASM zone once more so getGroup/findPath use a fresh instance state.
+      wasm.create_zone(ZONE, positions, indices, TOLERANCE);
+
+      log(`createZone  pathfinding3d:        ${fmt(wasmZone.totalMs)} ms  (${fmt(wasmZone.avgUs)} µs/op)`);
+      log(`createZone  three-pathfinding-3d: ${fmt(jsZone.totalMs)} ms  (${fmt(jsZone.avgUs)} µs/op)`);
+      log(`createZone  speedup: ${fmt(jsZone.totalMs / wasmZone.totalMs)}×`);
+      log('');
+
+      // --- getGroup ---
+      let groupOkWasm = 0;
+      let groupOkJs = 0;
+      let groupIdx = 0;
+
+      const wasmGroup = measure(() => {
+        const p = samples[groupIdx++ % samples.length];
+        const g = wasm.get_group(ZONE, p.x, p.y, p.z, true);
+        if (g !== undefined) groupOkWasm++;
+      }, groupIters);
+
+      groupIdx = 0;
+      const jsGroup = measure(() => {
+        const p = samples[groupIdx++ % samples.length];
+        const g = js.getGroup(ZONE, p, true);
+        if (g !== undefined && g !== null) groupOkJs++;
+      }, groupIters);
+
+      log(`getGroup  pathfinding3d:        ${fmt(wasmGroup.totalMs)} ms  (${fmt(wasmGroup.avgUs)} µs/op)  hits=${groupOkWasm}/${groupIters}`);
+      log(`getGroup  three-pathfinding-3d: ${fmt(jsGroup.totalMs)} ms  (${fmt(jsGroup.avgUs)} µs/op)  hits=${groupOkJs}/${groupIters}`);
+      log(`getGroup  speedup: ${fmt(jsGroup.totalMs / wasmGroup.totalMs)}×`);
+      log('');
+
+      // --- findPath ---
+      // Precompute pairs that share a group so both libraries do real path work.
+      const pairs = [];
+      const tryLimit = Math.min(samples.length, 800);
+      for (let i = 0; i < tryLimit && pairs.length < pathIters; i++) {
+        const a = samples[i];
+        const b = samples[(i * 7 + 13) % samples.length];
+        const ga = wasm.get_group(ZONE, a.x, a.y, a.z, true);
+        const gb = wasm.get_group(ZONE, b.x, b.y, b.z, true);
+        if (ga !== undefined && ga === gb) {
+          pairs.push({ a, b, group: ga });
+        }
+      }
+      if (pairs.length === 0) {
+        throw new Error('No valid same-group sample pairs for findPath');
+      }
+      while (pairs.length < pathIters) {
+        pairs.push(pairs[pairs.length % pairs.length]);
+      }
+
+      let pathHitsWasm = 0;
+      let pathHitsJs = 0;
+      let pathPtsWasm = 0;
+      let pathPtsJs = 0;
+      let pairIdx = 0;
+
+      const wasmPath = measure(() => {
+        const { a, b, group } = pairs[pairIdx++ % pairs.length];
+        const n = wasm.find_path(ZONE, group, a.x, a.y, a.z, b.x, b.y, b.z, PATH_OUTPUT);
+        if (n > 0) {
+          pathHitsWasm++;
+          pathPtsWasm += n;
+        }
+      }, pathIters);
+
+      pairIdx = 0;
+      const jsPath = measure(() => {
+        const { a, b, group } = pairs[pairIdx++ % pairs.length];
+        const result = js.findPath(a, b, ZONE, group);
+        const n = result?.path?.length ?? 0;
+        if (n > 0) {
+          pathHitsJs++;
+          pathPtsJs += n;
+        }
+      }, pathIters);
+
+      log(`findPath  pathfinding3d:        ${fmt(wasmPath.totalMs)} ms  (${fmt(wasmPath.avgUs)} µs/op)  hits=${pathHitsWasm}/${pathIters} avgPts=${fmt(pathPtsWasm / Math.max(pathHitsWasm, 1), 1)}`);
+      log(`findPath  three-pathfinding-3d: ${fmt(jsPath.totalMs)} ms  (${fmt(jsPath.avgUs)} µs/op)  hits=${pathHitsJs}/${pathIters} avgPts=${fmt(pathPtsJs / Math.max(pathHitsJs, 1), 1)}`);
+      log(`findPath  speedup: ${fmt(jsPath.totalMs / wasmPath.totalMs)}×`);
+      log('');
+
+      const zoneSpeedup = jsZone.totalMs / wasmZone.totalMs;
+      const groupSpeedup = jsGroup.totalMs / wasmGroup.totalMs;
+      const pathSpeedup = jsPath.totalMs / wasmPath.totalMs;
+      const overallSpeedup =
+        (jsZone.totalMs + jsGroup.totalMs + jsPath.totalMs) /
+        (wasmZone.totalMs + wasmGroup.totalMs + wasmPath.totalMs);
+
+      log(`Overall speedup (sum of timed ops): ${fmt(overallSpeedup)}×`);
+      log(`UA: ${navigator.userAgent}`);
+
+      renderResults(
+        [
+          rowHtml('createZone', 'pathfinding3d', 'wasm', wasmZone, null),
+          rowHtml('createZone', 'three-pathfinding-3d', 'js', jsZone, zoneSpeedup),
+          rowHtml('getGroup', 'pathfinding3d', 'wasm', wasmGroup, null),
+          rowHtml('getGroup', 'three-pathfinding-3d', 'js', jsGroup, groupSpeedup),
+          rowHtml('findPath', 'pathfinding3d', 'wasm', wasmPath, null),
+          rowHtml('findPath', 'three-pathfinding-3d', 'js', jsPath, pathSpeedup),
+        ],
+        pathSpeedup,
+        overallSpeedup,
+      );
+
+      setStatus('Done / 完成');
+      busy = false;
+      el.run.disabled = false;
+    }
+
+    el.clear.addEventListener('click', () => {
+      el.log.textContent = 'Cleared.\n已清空。';
+      el.summaryPanel.hidden = true;
+      el.resultsBody.innerHTML = '';
+      setStatus(meshData ? 'Ready / 就绪' : 'Loading…');
+    });
+
+    el.run.addEventListener('click', () => {
+      runBenchmark().catch((err) => {
+        console.error(err);
+        setStatus(`Error: ${err.message}`, true);
+        log(String(err?.stack || err));
+        busy = false;
+        el.run.disabled = false;
+      });
+    });
+
+    el.run.disabled = true;
+    loadNavmesh()
+      .then(() => {
+        setStatus('Ready — click Run / 就绪，点击运行');
+        el.run.disabled = false;
+        el.log.textContent =
+          'Navmesh loaded. Adjust iterations and click Run.\n导航网格已加载。调整迭代次数后点击运行。\n';
+      })
+      .catch((err) => {
+        console.error(err);
+        setStatus(`Failed to load navmesh: ${err.message}`, true);
+        el.log.textContent = String(err?.stack || err);
+      });
+  </script>
+</body>
+</html>
