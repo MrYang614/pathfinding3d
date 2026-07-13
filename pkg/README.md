@@ -16,7 +16,7 @@ Not a Three.js-only plugin — any JavaScript 3D engine that can supply mesh ver
 - Low JS overhead: results written into a preallocated `Float32Array`, reducing allocations and GC pressure.
 - Ready for Web, Electron, Node.js, and other ESM environments via `wasm-pack`.
 
-![Benchmark: pathfinding3d vs three-pathfinding-3d](benchmark.png)
+![Benchmark: pathfinding3d vs three-pathfinding-3d](../benchmark.png)
 
 *Demo navmesh (`level.nav.glb`): `findPath` **10.4x**, overall **7.3x** vs `three-pathfinding-3d`. Reproduce with [`demo/benchmark.html`](../demo/benchmark.html).*
 

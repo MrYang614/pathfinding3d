@@ -18,7 +18,7 @@
 | **灵活的 Zone 标识** | 可按字符串 ID（`create_zone`）或数字句柄（`create_zone_handle`）注册区域，适配不同架构。 |
 | **随处可用** | 通过 `wasm-pack` 打包，适用于 Vite/Webpack、Electron、Node.js 等 ESM 环境。 |
 
-![基准测试：pathfinding3d vs three-pathfinding-3d](benchmark.png)
+![基准测试：pathfinding3d vs three-pathfinding-3d](../benchmark.png)
 
 *Demo 导航网格（`level.nav.glb`）：`findPath` **10.4x**，三项合计约 **7.3x**（相对 `three-pathfinding-3d`）。可复现：[`demo/benchmark.html`](../demo/benchmark.html)。*
 
