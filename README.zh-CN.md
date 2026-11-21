@@ -2,7 +2,7 @@
 
 [![npm version](https://img.shields.io/npm/v/pathfinding3d)](https://www.npmjs.com/package/pathfinding3d)
 
-[English](README.md)
+[在线演示](https://mryang614.github.io/pathfinding3d/) · [English](README.md)
 
 最快的 JavaScript 三维寻路库。核心算法用 Rust 实现并编译为 WebAssembly，在浏览器与 Node.js 中提供接近原生的 3D NavMesh 性能。
 

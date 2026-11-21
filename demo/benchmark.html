@@ -228,7 +228,7 @@
         <span id="status" class="status">Loading navmesh… / 正在加载导航网格…</span>
       </div>
       <p class="hint">
-        Uses <code>/level.nav.glb</code>. Same positions for both libraries.
+        Uses <code>level.nav.glb</code>. Same positions for both libraries.
         Warmup runs precede timed measurements.
         <br />
         使用与 demo 相同的导航网格；两边使用相同采样点；正式计时前会先 warmup。
@@ -351,7 +351,7 @@
 
     async function loadNavmesh() {
       const loader = new GLTFLoader();
-      const gltf = await loader.loadAsync('/level.nav.glb');
+      const gltf = await loader.loadAsync(`${import.meta.env.BASE_URL}level.nav.glb`);
       const nav = gltf.scene.getObjectByName('Navmesh_Mesh');
       if (!nav || !nav.isMesh) {
         throw new Error('Navmesh_Mesh not found in level.nav.glb');

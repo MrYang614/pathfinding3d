@@ -2,7 +2,7 @@
 
 [![npm version](https://img.shields.io/npm/v/pathfinding3d)](https://www.npmjs.com/package/pathfinding3d)
 
-[简体中文](README.zh-CN.md)
+[Live demo](https://mryang614.github.io/pathfinding3d/) · [简体中文](README.zh-CN.md)
 
 The fastest JavaScript 3D pathfinding library. Core algorithms are implemented in Rust and compiled to WebAssembly, delivering near-native 3D NavMesh performance in browsers and Node.js.
 

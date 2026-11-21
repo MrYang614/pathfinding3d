@@ -69,7 +69,7 @@ async function init() {
 	const gltfLoader = new GLTFLoader();
 
 	gltfLoader.load(
-		'/level.glb',
+		`${import.meta.env.BASE_URL}level.glb`,
 		(gltf) => {
 			const levelMesh = gltf.scene.getObjectByName('Cube') as THREE.Mesh;
 			const levelMat = new THREE.MeshStandardMaterial({
@@ -85,7 +85,7 @@ async function init() {
 	);
 
 	gltfLoader.load(
-		'/level.nav.glb',
+		`${import.meta.env.BASE_URL}level.nav.glb`,
 		(gltf) => {
 			const _navmesh = gltf.scene.getObjectByName('Navmesh_Mesh') as THREE.Mesh;
 
@@ -159,6 +159,7 @@ function onDocumentPointerDown(event: PointerEvent) {
 }
 
 function onDocumentPointerUp(event: PointerEvent) {
+	if (!navmesh) return;
 	mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
 	mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
