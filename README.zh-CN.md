@@ -107,8 +107,20 @@ for (let i = 0; i < pointCount; i += 1) {
 - `create_zone_handle(positions, indices, tolerance)` — 同上，返回数字句柄。
 - `get_group(zoneId, x, y, z, checkPolygon)` — 查找包含或最接近某位置的分组。
 - `get_closest_node_id(zoneId, x, y, z, checkPolygon)` — 该分组内最近的导航节点。
+- `get_closest_point_on_navmesh_surface(zoneId, x, y, z)` — 在区域的所有分组中，按三维欧氏距离查找距给定世界坐标最近的三角形表面点。返回包含 `[x, y, z]` 的 `Float64Array`。若区域不存在、查询坐标含非有限数值，或区域内没有可用三角形，则返回 `undefined`。
 - `find_path(zoneId, groupId, sx, sy, sz, tx, ty, tz, output)` — 将路径写入 `Float32Array`。
 - `group_count` / `group_node_count` / `group_node_ids` / `group_node_centers` — 区域元数据。
+
+下面的示例将角色移到区域内最近的导航网格表面。
+
+```js
+const point = pathfinding.get_closest_point_on_navmesh_surface(
+  "level-1", character.x, character.y, character.z,
+);
+if (point !== undefined) {
+  [character.x, character.y, character.z] = point;
+}
+```
 
 破坏性变更见 [CHANGELOG.zh-CN.md](CHANGELOG.zh-CN.md)。
 

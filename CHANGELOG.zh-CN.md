@@ -6,6 +6,10 @@
 
 ## [未发布]
 
+### 新增
+
+- `get_closest_point_on_navmesh_surface` 在整个 Zone 的所有分组中查询三维网格表面最近点。[#4](https://github.com/MrYang614/pathfinding3d/issues/4)
+
 ### 变更
 
 - **节点 ID 改为组内局部索引。** `get_closest_node_id`、`group_node_ids` 返回的三角形 ID，以及 `node_center` 接受的 `nodeId`，均为单个连通分组内的下标（`0` … `group_node_count - 1`），而不再是整个 Zone 的全局三角形序号。请始终将节点 ID 与 `get_group` 返回的 `groupId`（或传给 `find_path` / 元数据 API 的 `groupId`）配合使用。

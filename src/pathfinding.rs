@@ -3,7 +3,9 @@ use crate::builder::create_zone as build_zone_data;
 use crate::channel::funnel3d_into;
 use crate::impls::{GroupData, PolygonInput, Portal3, Vec3, ZoneInput};
 use crate::kdtree::{KdPoint, KdTree};
-use crate::math::{is_point_in_triangle, is_vector_in_polygon, judge_dir, point_to_plane_distance};
+use crate::math::{
+    self, is_point_in_triangle, is_vector_in_polygon, judge_dir, point_to_plane_distance,
+};
 use crate::utils;
 use js_sys::{Float32Array, Float64Array, Uint32Array};
 use std::cell::RefCell;
@@ -268,6 +270,22 @@ impl PathfindingWasm {
         .map(|node| node.id as u32)
     }
 
+    /// Returns the nearest point on any triangle in the zone, using 3D Euclidean distance.
+    /// The input and the returned `[x, y, z]` coordinates use the mesh's world units.
+    /// Returns `None` (JavaScript `undefined`) for a missing zone, a zone without
+    /// finite triangles, or a query with a non-finite coordinate.
+    pub fn get_closest_point_on_navmesh_surface(
+        &self,
+        zone_id: &str,
+        x: f64,
+        y: f64,
+        z: f64,
+    ) -> Option<Float64Array> {
+        let zone = self.zone_from_name(zone_id)?;
+        let nearest = closest_surface_point(zone, &Vec3::new(x, y, z))?;
+        Some(Float64Array::from(nearest.to_array().as_slice()))
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub fn find_path(
         &self,
@@ -485,6 +503,39 @@ fn compute_path_points(
 
     funnel3d_into(*start, *target, channel_portals, &mut path_scratch.points);
     Some(())
+}
+
+fn closest_surface_point(zone_data: &ZoneData, position: &Vec3) -> Option<Vec3> {
+    if !position.is_finite() {
+        return None;
+    }
+    let mut nearest = None;
+    let mut best_distance_squared = f64::INFINITY;
+    for (group, spatial) in zone_data.zone.groups.iter().zip(&zone_data.group_spatial) {
+        if spatial.bounds.distance_squared_to_point(position) > best_distance_squared {
+            continue;
+        }
+        for (node, bounds) in group.iter().zip(&spatial.node_bounds) {
+            if bounds.distance_squared_to_point(position) > best_distance_squared {
+                continue;
+            }
+            let [a, b, c] = node.vertex_indices.map(|i| zone_data.zone.vertices[i]);
+            if !(a.is_finite() && b.is_finite() && c.is_finite()) {
+                continue;
+            }
+            let candidate = math::closest_point_on_triangle(position, &a, &b, &c);
+            if candidate == *position {
+                return Some(candidate);
+            }
+            if nearest
+                .is_none_or(|current| math::is_closer_surface_point(position, candidate, current))
+            {
+                best_distance_squared = candidate.distance_squared(*position);
+                nearest = Some(candidate);
+            }
+        }
+    }
+    nearest
 }
 
 fn compute_group(zone_data: &ZoneData, position: &Vec3, check_polygon: bool) -> Option<usize> {

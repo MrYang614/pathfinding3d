@@ -2,7 +2,7 @@
 
 #![cfg(target_arch = "wasm32")]
 
-use js_sys::Float32Array;
+use js_sys::{Float32Array, Float64Array};
 use pathfinding3d::PathfindingWasm;
 use wasm_bindgen_test::{wasm_bindgen_test, wasm_bindgen_test_configure};
 
@@ -91,4 +91,93 @@ fn disconnected_route_returns_zero_and_preserves_output() {
     );
     assert_eq!(count, 0);
     assert_eq!(output.to_vec(), [SENTINEL; 6]);
+}
+
+fn assert_surface_point(point: &Float64Array, expected: [f64; 3]) {
+    assert_eq!(point.length(), 3);
+    for (coordinate, expected) in point.to_vec().into_iter().zip(expected) {
+        assert!(
+            (coordinate - expected).abs() < 1e-12,
+            "{coordinate} != {expected}"
+        );
+    }
+}
+
+#[wasm_bindgen_test]
+fn projects_onto_the_nearest_surface_across_groups() {
+    // The smaller island's centroid is closer to the first query, but its surface is farther.
+    let vertices = [
+        [0.0, 4.0, 0.0],
+        [2.0, 4.0, 0.0],
+        [0.0, 4.0, 2.0],
+        [0.0, 0.0, 0.0],
+        [32.0, 32.0, 0.0],
+        [0.0, 0.0, 32.0],
+    ];
+    let mut pathfinding = PathfindingWasm::new();
+    pathfinding
+        .create_zone(
+            ZONE.to_owned(),
+            vertices.concat(),
+            vec![0, 1, 2, 3, 4, 5],
+            0.0001,
+        )
+        .expect("the two disconnected triangles should build");
+
+    let face = pathfinding
+        .get_closest_point_on_navmesh_surface(ZONE, 0.0, 2.0, 1.0)
+        .expect("the sloped triangle has a closest face point");
+    let edge = pathfinding
+        .get_closest_point_on_navmesh_surface(ZONE, 16.0, 16.0, -4.0)
+        .expect("the sloped triangle has a closest edge point");
+
+    assert_surface_point(&edge, [16.0, 16.0, 0.0]);
+    // The caller retains the first result across subsequent queries.
+    assert_surface_point(&face, [1.0, 1.0, 1.0]);
+}
+
+#[wasm_bindgen_test]
+fn far_above_coplanar_triangles_projects_onto_the_nearer_island() {
+    let vertices = [
+        [0.0, 0.0, 0.0],
+        [1.0, 0.0, 0.0],
+        [0.0, 0.0, 1.0],
+        [4.0, 0.0, 0.0],
+        [5.0, 0.0, 0.0],
+        [4.0, 0.0, 1.0],
+    ];
+    let mut pathfinding = PathfindingWasm::new();
+    pathfinding
+        .create_zone(
+            ZONE.to_owned(),
+            vertices.concat(),
+            vec![0, 1, 2, 3, 4, 5],
+            0.0001,
+        )
+        .expect("the two disconnected triangles should build");
+
+    let point = pathfinding
+        .get_closest_point_on_navmesh_surface(ZONE, 4.25, 1e160, 0.25)
+        .expect("a finite query above the second island has a projection");
+    assert_surface_point(&point, [4.25, 0.0, 0.25]);
+}
+
+#[wasm_bindgen_test]
+fn missing_surface_or_nonfinite_query_returns_none() {
+    let mut pathfinding = mesh_with_island();
+    pathfinding
+        .create_zone("empty".to_owned(), vec![], vec![], 0.0001)
+        .expect("an empty mesh is a valid zone");
+
+    for (zone, x, y, z) in [
+        ("missing", 0.0, 0.0, 0.0),
+        ("empty", 0.0, 0.0, 0.0),
+        (ZONE, f64::NAN, 0.0, 0.0),
+        (ZONE, 0.0, f64::INFINITY, 0.0),
+        (ZONE, 0.0, 0.0, f64::NEG_INFINITY),
+    ] {
+        assert!(pathfinding
+            .get_closest_point_on_navmesh_surface(zone, x, y, z)
+            .is_none());
+    }
 }

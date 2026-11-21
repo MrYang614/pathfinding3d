@@ -107,8 +107,20 @@ for (let i = 0; i < pointCount; i += 1) {
 - `create_zone_handle(positions, indices, tolerance)` — same, returns a numeric handle.
 - `get_group(zoneId, x, y, z, checkPolygon)` — group containing or nearest to a position.
 - `get_closest_node_id(zoneId, x, y, z, checkPolygon)` — closest node in that group.
+- `get_closest_point_on_navmesh_surface(zoneId, x, y, z)` — search all groups in the zone for the triangle surface point nearest to the given world coordinates by 3D Euclidean distance. Returns a `Float64Array` containing `[x, y, z]`, or `undefined` if the zone is missing, the query coordinates are non-finite, or the zone has no usable triangles.
 - `find_path(zoneId, groupId, sx, sy, sz, tx, ty, tz, output)` — write path into a `Float32Array`.
 - `group_count` / `group_node_count` / `group_node_ids` / `group_node_centers` — zone metadata.
+
+This example moves a character onto the nearest surface in a zone.
+
+```js
+const point = pathfinding.get_closest_point_on_navmesh_surface(
+  "level-1", character.x, character.y, character.z,
+);
+if (point !== undefined) {
+  [character.x, character.y, character.z] = point;
+}
+```
 
 See [CHANGELOG.md](CHANGELOG.md) for breaking changes.
 

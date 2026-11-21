@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- `get_closest_point_on_navmesh_surface` returns the closest 3D surface point across all groups in a zone. [#4](https://github.com/MrYang614/pathfinding3d/issues/4)
+
 ### Changed
 
 - **Node IDs are now group-local.** Triangle IDs returned by `get_closest_node_id`, `group_node_ids`, and accepted by `node_center` are indices within a single connected group (`0` … `group_node_count - 1`), not global triangle indices across the entire zone. Always pair a node ID with the `groupId` from `get_group` (or the `groupId` argument you pass to `find_path` / metadata APIs).
