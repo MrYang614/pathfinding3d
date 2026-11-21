@@ -1,5 +1,5 @@
 use crate::impls::{Portal3, Vec3};
-use crate::math::{distance_sq_segment_to_segment, judge_dir, vequal};
+use crate::math;
 
 pub(crate) fn funnel3d_into(start: Vec3, end: Vec3, portals: &[Portal3], path: &mut Vec<Vec3>) {
     path.clear();
@@ -22,9 +22,9 @@ pub(crate) fn funnel3d_into(start: Vec3, end: Vec3, portals: &[Portal3], path: &
         let left = portals[i].left;
         let right = portals[i].right;
 
-        if judge_dir(&portal_apex, &portal_right, &right) >= 0.0 {
-            if vequal(&portal_apex, &portal_right)
-                || judge_dir(&portal_apex, &portal_left, &right) < 0.0
+        if math::judge_dir(&portal_apex, &portal_right, &right) >= 0.0 {
+            if math::vequal(&portal_apex, &portal_right)
+                || math::judge_dir(&portal_apex, &portal_left, &right) < 0.0
             {
                 portal_right = right;
                 right_index = i;
@@ -47,9 +47,9 @@ pub(crate) fn funnel3d_into(start: Vec3, end: Vec3, portals: &[Portal3], path: &
             }
         }
 
-        if judge_dir(&portal_apex, &portal_left, &left) <= 0.0 {
-            if vequal(&portal_apex, &portal_left)
-                || judge_dir(&portal_apex, &portal_right, &left) > 0.0
+        if math::judge_dir(&portal_apex, &portal_left, &left) <= 0.0 {
+            if math::vequal(&portal_apex, &portal_left)
+                || math::judge_dir(&portal_apex, &portal_right, &left) > 0.0
             {
                 portal_left = left;
                 left_index = i;
@@ -77,7 +77,7 @@ pub(crate) fn funnel3d_into(start: Vec3, end: Vec3, portals: &[Portal3], path: &
 
     if path
         .last()
-        .map(|p| !vequal(p, &portals[portals.len() - 1].left))
+        .map(|p| !math::vequal(p, &portals[portals.len() - 1].left))
         .unwrap_or(true)
     {
         path.push(portals[portals.len() - 1].left);
@@ -99,7 +99,7 @@ fn insert(
     for portal in portals.iter().take(end_idx - 1).skip(pre_idx) {
         let l = portal.left;
         let r = portal.right;
-        let (dist, _, _) = distance_sq_segment_to_segment(p1, p2, l, r);
+        let (dist, _, _) = math::distance_sq_segment_to_segment(p1, p2, l, r);
         if dist > 0.01 {
             let (_, _, intersect_xz) = distance_sq_segment_to_segment_xz(
                 (p1.x, p1.z),
@@ -113,10 +113,6 @@ fn insert(
             }
         }
     }
-}
-
-fn clamp(value: f64, min_v: f64, max_v: f64) -> f64 {
-    value.max(min_v).min(max_v)
 }
 
 fn distance_sq_segment_to_segment_xz(
@@ -145,27 +141,27 @@ fn distance_sq_segment_to_segment_xz(
 
     if a <= epsilon {
         s = 0.0;
-        t = clamp(f / e, 0.0, 1.0);
+        t = math::clamp(f / e, 0.0, 1.0);
     } else {
         let c = d1.0 * r.0 + d1.1 * r.1;
         if e <= epsilon {
             t = 0.0;
-            s = clamp(-c / a, 0.0, 1.0);
+            s = math::clamp(-c / a, 0.0, 1.0);
         } else {
             let b = d1.0 * d2.0 + d1.1 * d2.1;
             let denom = a * e - b * b;
             if denom != 0.0 {
-                s = clamp((b * f - c * e) / denom, 0.0, 1.0);
+                s = math::clamp((b * f - c * e) / denom, 0.0, 1.0);
             } else {
                 s = 0.0;
             }
             t = (b * s + f) / e;
             if t < 0.0 {
                 t = 0.0;
-                s = clamp(-c / a, 0.0, 1.0);
+                s = math::clamp(-c / a, 0.0, 1.0);
             } else if t > 1.0 {
                 t = 1.0;
-                s = clamp((b - c) / a, 0.0, 1.0);
+                s = math::clamp((b - c) / a, 0.0, 1.0);
             }
         }
     }
@@ -186,5 +182,5 @@ fn segment_fraction_xz(start: (f64, f64), end: (f64, f64), point: (f64, f64)) ->
     }
     let px = point.0 - start.0;
     let pz = point.1 - start.1;
-    clamp((px * dx + pz * dz) / len_sq, 0.0, 1.0)
+    math::clamp((px * dx + pz * dz) / len_sq, 0.0, 1.0)
 }
